@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>n8n — Architecture & Concepts Flow Diagram</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --card: #1a1e2e;
+    --border: #252a3d;
+    --accent: #ff6b35;
+    --accent2: #4ecdc4;
+    --accent3: #ffe66d;
+    --accent4: #a78bfa;
+    --accent5: #34d399;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --white: #ffffff;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px 60px;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--white);
+    margin-bottom: 6px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    text-align: center;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    margin-bottom: 48px;
+    letter-spacing: 0.05em;
+  }
+
+  .diagram {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── TOP ROW: n8n root ── */
+  .root-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0;
+  }
+
+  .root-card {
+    background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+    border-radius: 16px;
+    padding: 22px 48px;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(255,107,53,0.4);
+    position: relative;
+  }
+
+  .root-card h2 { font-size: 2rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
+  .root-card p { font-size: 0.8rem; color: rgba(255,255,255,0.85); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+
+  /* ── Connector lines ── */
+  .connector-down {
+    display: flex;
+    justify-content: center;
+    height: 36px;
+    position: relative;
+  }
+  .connector-down::after {
+    content: '';
+    width: 2px;
+    height: 100%;
+    background: var(--border);
+    display: block;
+  }
+
+  .connector-branch {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    height: 40px;
+    position: relative;
+    margin: 0 10px;
+  }
+
+  /* ── Sections row ── */
+  .sections-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    position: relative;
+  }
+
+  .sections-row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: calc(16.66% + 8px);
+    right: calc(16.66% + 8px);
+    height: 2px;
+    background: var(--border);
+  }
+
+  .section-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .section-col .stem {
+    width: 2px;
+    height: 28px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .section-card {
+    width: 100%;
+    border-radius: 12px;
+    padding: 16px 18px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .section-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .section-card.orange::before { background: var(--accent); }
+  .section-card.teal::before   { background: var(--accent2); }
+  .section-card.yellow::before { background: var(--accent3); }
+  .section-card.purple::before { background: var(--accent4); }
+  .section-card.green::before  { background: var(--accent5); }
+  .section-card.blue::before   { background: #60a5fa; }
+
+  .section-label {
+    font-size: 0.65rem;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .section-label.orange { color: var(--accent); }
+  .section-label.teal   { color: var(--accent2); }
+  .section-label.yellow { color: var(--accent3); }
+  .section-label.purple { color: var(--accent4); }
+  .section-label.green  { color: var(--accent5); }
+  .section-label.blue   { color: #60a5fa; }
+
+  .section-card h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 10px;
+  }
+
+  .tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    padding: 3px 9px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--surface);
+    white-space: nowrap;
+  }
+
+  .tag.accent { border-color: var(--accent); color: var(--accent); }
+  .tag.teal   { border-color: var(--accent2); color: var(--accent2); }
+  .tag.yellow { border-color: var(--accent3); color: var(--accent3); }
+  .tag.purple { border-color: var(--accent4); color: var(--accent4); }
+  .tag.green  { border-color: var(--accent5); color: var(--accent5); }
+  .tag.blue   { border-color: #60a5fa; color: #60a5fa; }
+
+  /* Sub-rows under sections */
+  .sub-row {
+    display: grid;
+    gap: 12px;
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .sub-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .sub-row.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+  .sub-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .sub-col .stem {
+    width: 2px;
+    height: 20px;
+    background: var(--border);
+  }
+
+  .sub-card {
+    width: 100%;
+    border-radius: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .sub-card h4 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .sub-card h4 .icon { font-size: 1rem; }
+
+  .sub-card ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .sub-card ul li {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    padding: 2px 0;
+    padding-left: 12px;
+    position: relative;
+  }
+
+  .sub-card ul li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: var(--border);
+  }
+
+  .sub-card p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ── Full-width sections ── */
+  .full-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .full-card {
+    border-radius: 12px;
+    padding: 20px 22px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .full-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .full-card.canvas::before { background: var(--accent4); }
+  .full-card.nodes::before  { background: var(--accent5); }
+
+  .full-card .section-label { margin-bottom: 8px; }
+
+  .full-card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 12px;
+  }
+
+  .nodes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .node-item {
+    border-radius: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .node-item .node-type {
+    font-size: 0.58rem;
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 3px;
+  }
+
+  .node-item .node-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--white);
+  }
+
+  .node-item.trigger .node-type { color: var(--accent); }
+  .node-item.action  .node-type { color: var(--accent2); }
+  .node-item.flow    .node-type { color: var(--accent3); }
+  .node-item.code    .node-type { color: var(--accent4); }
+  .node-item.data    .node-type { color: var(--accent5); }
+  .node-item.core    .node-type { color: #60a5fa; }
+
+  .canvas-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .canvas-feature {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .canvas-feature .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent4);
+    flex-shrink: 0;
+  }
+
+  /* Sticky notes section */
+  .sticky-row {
+    margin-top: 16px;
+    border-radius: 12px;
+    padding: 20px 22px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sticky-row::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent3);
+  }
+
+  .sticky-inner {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .sticky-note {
+    background: #ffe66d;
+    border-radius: 0 0 8px 8px;
+    padding: 14px;
+    box-shadow: 2px 3px 8px rgba(0,0,0,0.4);
+    position: relative;
+  }
+
+  .sticky-note::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: rgba(0,0,0,0.1);
+  }
+
+  .sticky-note p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: #3d3000;
+    line-height: 1.7;
+  }
+
+  .sticky-note h5 {
+    font-size: 0.75rem;
+    color: #3d3000;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .sticky-use-cases {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .use-case {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 9px 12px;
+    border: 1px solid rgba(255, 230, 109, 0.2);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .use-case strong { color: var(--accent3); display: block; margin-bottom: 2px; font-size: 0.7rem; }
+
+  /* Footer */
+  .footer-legend {
+    max-width: 1100px;
+    margin: 32px auto 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 768px) {
+    .sections-row { grid-template-columns: 1fr; }
+    .sections-row::before { display: none; }
+    .full-row { grid-template-columns: 1fr; }
+    .nodes-grid { grid-template-columns: repeat(2, 1fr); }
+    .sticky-inner { grid-template-columns: 1fr; }
+    .sub-row.cols-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1><span>n8n</span> Architecture & Concepts</h1>
+<p class="subtitle">// workflow automation platform — visual reference guide</p>
+
+<div class="diagram">
+
+  <!-- ROOT -->
+  <div class="root-row">
+    <div class="root-card">
+      <h2>n8n</h2>
+      <p>open-source workflow automation platform</p>
+    </div>
+  </div>
+
+  <div class="connector-down"></div>
+
+  <!-- MAIN SECTIONS: What it is / What it does / Setup Types -->
+  <div class="sections-row">
+
+    <!-- WHAT IS n8n -->
+    <div class="section-col">
+      <div class="stem"></div>
+      <div class="section-card orange" style="width:100%">
+        <div class="section-label orange">01 — Definition</div>
+        <h3>What is n8n?</h3>
+        <div class="tag-list">
+          <span class="tag accent">Open Source</span>
+          <span class="tag accent">Visual Builder</span>
+          <span class="tag accent">Self-Hostable</span>
+          <span class="tag">Node-Based</span>
+          <span class="tag">400+ Integrations</span>
+          <span class="tag">No-Code / Low-Code</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- WHAT IS IT USED FOR -->
+    <div class="section-col">
+      <div class="stem"></div>
+      <div class="section-card teal" style="width:100%">
+        <div class="section-label teal">02 — Purpose</div>
+        <h3>What is it Used For?</h3>
+        <div class="tag-list">
+          <span class="tag teal">Data Sync</span>
+          <span class="tag teal">ETL Pipelines</span>
+          <span class="tag teal">Notifications</span>
+          <span class="tag">Lead Management</span>
+          <span class="tag">AI Workflows</span>
+          <span class="tag">DevOps Automation</span>
+          <span class="tag">Reporting</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETUP TYPES -->
+    <div class="section-col">
+      <div class="stem"></div>
+      <div class="section-card yellow" style="width:100%">
+        <div class="section-label yellow">03 — Deployment</div>
+        <h3>Platform Setup Types</h3>
+        <div class="tag-list">
+          <span class="tag yellow">Local Setup</span>
+          <span class="tag yellow">Self-Host</span>
+          <span class="tag yellow">n8n Production</span>
+          <span class="tag">n8n Cloud</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SETUP TYPE DETAILS -->
+  <div class="sub-row cols-3" style="margin-top:16px">
+
+    <!-- LOCAL SETUP -->
+    <div class="sub-col">
+      <div class="stem"></div>
+      <div class="sub-card">
+        <h4><span class="icon">💻</span> Local Setup</h4>
+        <ul>
+          <li>npm install n8n -g</li>
+          <li>Node.js v18+ required</li>
+          <li>localhost:5678</li>
+          <li>Dev &amp; testing only</li>
+          <li>SQLite (default)</li>
+          <li>No SSL / No auth</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SELF HOST -->
+    <div class="sub-col">
+      <div class="stem"></div>
+      <div class="sub-card">
+        <h4><span class="icon">🐳</span> Self-Host</h4>
+        <ul>
+          <li>Docker / Kubernetes</li>
+          <li>VPS / Cloud VM</li>
+          <li>Full data control</li>
+          <li>Custom config</li>
+          <li>Manage updates yourself</li>
+          <li>Private integrations</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- PRODUCTION -->
+    <div class="sub-col">
+      <div class="stem"></div>
+      <div class="sub-card">
+        <h4><span class="icon">🚀</span> n8n Production</h4>
+        <ul>
+          <li>PostgreSQL DB</li>
+          <li>Docker Compose</li>
+          <li>Nginx + SSL/TLS</li>
+          <li>Basic Auth / SSO</li>
+          <li>Backups + Monitoring</li>
+          <li>Restart policies</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CANVAS + NODES -->
+  <div class="full-row">
+
+    <!-- CANVAS EDITOR -->
+    <div class="full-card canvas">
+      <div class="section-label purple">04 — Interface</div>
+      <h3>🎨 n8n Canvas Editor</h3>
+      <div class="canvas-features">
+        <div class="canvas-feature"><span class="dot"></span>Infinite scrollable whiteboard</div>
+        <div class="canvas-feature"><span class="dot"></span>Drag &amp; drop nodes</div>
+        <div class="canvas-feature"><span class="dot"></span>Node config side panel</div>
+        <div class="canvas-feature"><span class="dot"></span>Visual connections</div>
+        <div class="canvas-feature"><span class="dot"></span>Execution log viewer</div>
+        <div class="canvas-feature"><span class="dot"></span>Mini-map navigation</div>
+        <div class="canvas-feature"><span class="dot"></span>Zoom + pan controls</div>
+        <div class="canvas-feature"><span class="dot"></span>One-click execute</div>
+      </div>
+    </div>
+
+    <!-- NODES -->
+    <div class="full-card nodes">
+      <div class="section-label green">05 — Building Blocks</div>
+      <h3>⬡ n8n Nodes</h3>
+      <div class="nodes-grid">
+        <div class="node-item trigger">
+          <div class="node-type">Trigger</div>
+          <div class="node-name">Webhook / Cron</div>
+        </div>
+        <div class="node-item action">
+          <div class="node-type">Action</div>
+          <div class="node-name">Send Email</div>
+        </div>
+        <div class="node-item flow">
+          <div class="node-type">Flow</div>
+          <div class="node-name">IF / Switch</div>
+        </div>
+        <div class="node-item code">
+          <div class="node-type">Code</div>
+          <div class="node-name">JS / Python</div>
+        </div>
+        <div class="node-item data">
+          <div class="node-type">Data</div>
+          <div class="node-name">Set / Merge</div>
+        </div>
+        <div class="node-item core">
+          <div class="node-type">Core</div>
+          <div class="node-name">HTTP Request</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STICKY NOTES -->
+  <div class="sticky-row">
+    <div class="section-label yellow" style="margin-bottom:10px">06 — Annotations</div>
+    <h3 style="font-size:1.1rem;font-weight:700;color:var(--white);margin-bottom:16px">📝 Sticky Notes</h3>
+    <div class="sticky-inner">
+      <div class="sticky-note">
+        <h5>⚠️ Important Note</h5>
+        <p>This section fetches<br>customer data from CRM.<br><br>Rate limit: 100 req/min<br>Handles pagination auto.<br><br>Author: Dev Team<br>Date: 2026-03</p>
+      </div>
+      <div class="sticky-use-cases">
+        <div class="use-case"><strong>📌 Label Sections</strong>Group and title workflow areas for navigation</div>
+        <div class="use-case"><strong>⚠️ Warn Collaborators</strong>Mark critical paths and edge cases</div>
+        <div class="use-case"><strong>📋 Document Logic</strong>Explain non-obvious decisions inline</div>
+        <div class="use-case"><strong>✏️ Markdown Support</strong>Headings, lists, bold, code blocks</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- LEGEND -->
+<div class="footer-legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Definition</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent2)"></div> Use Cases</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent3)"></div> Setup / Deployment</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent4)"></div> Canvas Editor</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent5)"></div> Nodes</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ffe66d"></div> Sticky Notes</div>
+</div>
+
+</body>
+</html>
