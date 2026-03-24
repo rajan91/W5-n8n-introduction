@@ -369,6 +369,8 @@ n8n
 - ☁️ [n8n Cloud](https://app.n8n.cloud)
 - 📦 [Node Library](https://n8n.io/integrations)
 
----
+🏷️ Tags
+n8n automation ai-automation workflow no-code low-code langchain etl self-host vps hostinger nodejs open-source
 
-*Last updated: March 2026*
+⚖️ Author
+Rajan Ganeshan - AI Engineer
